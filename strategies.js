@@ -40,8 +40,6 @@ function SMA_optimize(datapoints, n)
 	return datapoints[datapoints.length-n-1] + _.last(datapoints)/n;
 }
 
-console.log(SMA_5, SMA_20);
-
 function LWMA(datapoints)
 {	
 	var t = datapoints.length;
