@@ -16,7 +16,6 @@ pfclient.on('data', function(data) {
 
 	var arr = data
 		.toString()
-		.replace(/\./gi, "")
 		.split("|");
 
 	if(arr.pop() == "C") { //Empty string, except when it's C, then it means the exchange closed
@@ -24,7 +23,7 @@ pfclient.on('data', function(data) {
 	}
 
 	arr = arr
-		.map(function(a) {return parseInt(a);})
+		.map(function(a) {return parseFloat(a);})
 	;
 
 	_.map(arr, function(val) {
