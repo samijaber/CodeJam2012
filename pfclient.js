@@ -25,8 +25,10 @@ pfclient.on('data', function(data) {
 		.map(function(a) {return parseInt(a);})
 	;
 
-	prices = prices.concat(arr);
-
+	_.map(arr, function(val) {
+		prices.append(val);
+		//call averaging function here, or maybe throw event
+	});
 });
 
 pfclient.on('end', function() {
