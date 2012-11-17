@@ -4,6 +4,7 @@ var _ = require('underscore');
 var net = require('net');
 
 var pricefeed = [];
+var time = 0;
 
 function logbuy() {
 	console.log("buy");
@@ -42,17 +43,18 @@ pfclient.on('data', function(data) {
 	});
 
 	xOver(
-		_.last(SMA_5, arr.length), 
-		_.last(SMA_20, arr.length), 
+		_.last(SMA_5), 
+		_.last(SMA_20), 
 		bsclient.buy,
 		bsclient.sell
 	);
+
+	
 });
 
 pfclient.on('end', function() {
 	console.log('pfclient disconnected');
 });
-
 
 var SMA_5 = [], 
 	SMA_20 = [], 
@@ -64,39 +66,114 @@ var SMA_5 = [],
 	TMA_20 = [];
 
 //SMA function
-function SMA(dp20)
+function SMA(datapoints)
 {
-	var t = dp20.length;
-
+	var temp_sum;
+	var t = datapoints.length;
 	if(t<= 5)
 	{
-		var avg = sum(dp20)/t;
-		SMA_5.push(avg);
-		SMA_20.push(avg);
+		SMA_5.push(		Math.round( (sum(datapoints)/t) * 1000) / 1000 );
+		SMA_20.push(_.last(SMA_5));
 	}
 	else if(t <= 20) 
 	{
-		var sum5 = sum(_.last(dp20, 5));
-		var avg5 = sum5/5;
-		var sum20 = sum5 + sum(_.first(dp20, t-5));
-		var avg20 = sum20/t;
-		SMA_5.push(avg5);
-		SMA_20.push(avg20);
+		temp_sum = sum(_.last(datapoints, 5));
+		SMA_20.push( 	Math.round( ( (temp_sum + sum(_.first(datapoints,t-5))) /t) *1000 ) /1000 );
+		SMA_5.push( 	Math.round( (temp_sum/5) *1000 )/1000 );
 	}
 	else
 	{
-		SMA_5.push(_.last(SMA_5) + SMA_optimize(dp20,5));
-		SMA_20.push(_.last(SMA_20) +  SMA_optimize(dp20,20));
+		SMA_5.push(_.last(SMA_5) + SMA_optimize(datapoints,5));
+		SMA_20.push(_.last(SMA_20) +  SMA_optimize(datapoints,20));
 	}
 }
 
 function SMA_optimize(datapoints, n)
 {
-	return (_.last(datapoints) - datapoints[datapoints.length-n-1])/n;
+	return Math.round( (_.last(datapoints)/n - datapoints[datapoints.length-n-1]/n) * 1000) /1000;
+}
+
+function LWMA(datapoints)
+{	
+	var t = datapoints.length;
+	if(t<= 5)
+	{
+		LWMA_5.push(LWMA_optimize(datapoints, t));
+		LWMA_20.push(_.last(LWMA_5));	 
+	}
+	else if(t <= 20) 
+	{  
+		LWMA_5.push(LWMA_optimize(datapoints, 5));
+		LWMA_20.push(LWMA_optimize(datapoints, t));
+	}
+	else
+	{
+		LWMA_5 = LWMA_optimize(datapoints, 5);
+		LWMA_20 = LWMA_optimize(datapoints, 20);
+	}
+}
+
+function LWMA_optimize(datapoints, n)
+{
+	var factors = _.range(1,n+1);
+	var datapoints = _.last(datapoints, n);
+	return Math.round( sum(_.map(_.zip(datapoints,factors), function(array){return array[0]*array[1];}))/sum(factors) *1000) /1000;
+}
+
+function EMA(datapoints)
+{	
+	var t = datapoints.length;
+	var lastprice = _.last(datapoints);
+
+	if(t == 1)
+	{
+		EMA_5.push(lastprice);
+		EMA_20.push(lastprice);
+	}
+	else
+	{
+		var prev_EMA_5 = _.last(EMA_5);
+		var prev_EMA_20 = _.last(EMA_20);
+		EMA_5.push(EMA_optimize(lastprice, 5, prev_EMA_5));
+		EMA_20.push(EMA_optimize(lastprice, 20, prev_EMA_20));
+	}
+}
+
+function EMA_optimize(lastp, n, prev)
+{
+	var value = prev + ((lastp - prev) * (2/(n+1)));
+	return Math.round(value*1000) /1000;
+}
+
+
+function TMA(datapoints)
+{	
+	var t = datapoints.length;
+	if(t<= 5)
+	{
+		TMA_5.push(TMA_optimize(_.last(SMA_5,t),t));
+		TMA_20.push(TMA_optimize(_.last(SMA_20,t),t));
+	}
+	else if(t <= 20) 
+	{
+		TMA_5.push(TMA_optimize(_.last(SMA_5,5),5));
+		TMA_20.push(TMA_optimize(_.last(SMA_20,t),t));
+	}
+	else
+	{
+		TMA_5.push(TMA_optimize(_.last(SMA_5,5),5));
+		TMA_20.push(TMA_optimize(_.last(SMA_20,20),20));
+	}	
+}
+
+function TMA_optimize(data, n)
+{
+	return Math.round( ( (sum(data)/n) *1000 )) / 1000;
 }
 
 //sum function for array x
-function sum(x) {
+function sum(x)
+{
 	//code from Underscore.js Docmuentation
 	return _.reduce(x, function(memo, num){return memo+num;},0);
 }
@@ -141,21 +218,23 @@ var bsclient = net.connect({port: 9000});
 
 bsclient.setEncoding('ascii');
 
-var modes = [],
-	bsprices = [];
+var bsmodes = [],
+	bsprices = [],
+	bstimes = [];
 
 bsclient.buy = function() {
-	modes.push("B");
+	bsmodes.push("B");
 	bsclient.write('B\n');
 }
 
 bsclient.sell = function() {
-	modes.push("S");
+	bsmodes.push("S");
 	bsclient.write('S\n');
 }
 
 bsclient.on('data', function(data) {
 	bsprices.push(data);
+	bstimes = []; //not exact, possibly a few seconds too high
 });
 
 bsclient.on('end', function() {
@@ -168,6 +247,6 @@ bsclient.on('end', function() {
 		}
 	});
 	pricesfmt = _.compact(pricesfmt).length;
-	console.log(modes.length);
-	_.first(modes, pricesfmt.length);
+	console.log(bsmodes.length);
+	_.first(bsmodes, pricesfmt.length);
 });
