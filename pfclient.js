@@ -18,7 +18,7 @@ pfclient.on('data', function(data) {
 		.split("|");
 
 	if(arr.pop() == "C") { //Empty string, except when it's C, then it means the exchange closed
-		client.end();
+		pfclient.end();
 	}
 
 	arr = arr
@@ -26,9 +26,11 @@ pfclient.on('data', function(data) {
 	;
 
 	_.map(arr, function(val) {
-		prices.append(val);
+		prices.push(val);
 		//call averaging function here, or maybe throw event
 	});
+
+	console.log(arr);
 });
 
 pfclient.on('end', function() {
