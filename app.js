@@ -140,20 +140,22 @@ trade_client.setEncoding('ascii');
 
 var bstypes = [],
   bsprices = [],
-  bstimes = [],
+  minTimes = [],
+  maxTimes = [],
   bsstrategies = [];
 
 trade_client.buy = function(strategy) {
   trade_client.write('B\n');
   bstypes.push("buy");
   bsstrategies.push(strategy);
+  minTimes.push(crt);
 }
 
 trade_client.sell = function(strategy) {
   trade_client.write('S\n');
   bstypes.push("sell");
   bsstrategies.push(strategy);
-  bstimes.push(crt);
+  minTimes.push(crt);
 }
 
 trade_client.on('data', function(data) {
@@ -161,6 +163,7 @@ trade_client.on('data', function(data) {
     console.log("E");
   }
   bsprices.push(data);
+  maxTimes.push(crt);
 });
 
 trade_client.on('end', function() {
@@ -171,10 +174,28 @@ trade_client.on('end', function() {
     )
   });
 
+  var bstimes = _.map(
+    _.zip(minTimes, maxTimes, pricesfmt),
+    function (arr) {
+      return _.find(
+        _.range(arr[0], arr[1]),
+        function(a) {
+          return pricefeed[a] == arr[2];
+        }
+      );
+    }
+  );
+
   pricesfmt = _.compact(pricesfmt);
 
+  console.log("prices: " + pricesfmt.length);
+  console.log("minTimes: " + minTimes.length);
+  console.log("maxTimes: " + maxTimes.length);
+  console.log("times: " + bstimes.length);
+  console.log("strategies: " + bsstrategies.length);
+  console.log("types: " + bstypes.length);
+
   var transactionInfo = report.formatTransactionInfo(bstypes, bsprices, bstimes, bsstrategies);
-  console.log(_.first(transactionInfo, 10));
 });
 
 
