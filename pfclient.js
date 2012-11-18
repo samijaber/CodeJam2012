@@ -5,6 +5,7 @@ var _ = require('underscore');
 var net = require('net');
 
 var pricefeed = [];
+var crt = -1;
 
 function logbuy() {
 	console.log("buy");
@@ -40,6 +41,7 @@ pfclient.on('data', function(data) {
 	_.map(arr, function(val) {
 		pricefeed.push(val);
 		Strategies.populate(_.last(pricefeed, 21));
+		crt++;
 	});
 
 	xOver(
@@ -109,41 +111,40 @@ bsclient.sell = function(strategy) {
 	bsclient.write('S\n');
 	bstypes.push("sell");
 	bsstrategies.push(strategy);
+	bstimes.push(crt);
 }
 
 bsclient.on('data', function(data) {
+	if(data.toString() == "E") {
+		console.log("E");
+	}
 	bsprices.push(data);
-	bstimes.push(pricefeed.length); //not exact, possibly a few seconds too high
 });
 
 bsclient.on('end', function() {
 	var pricesfmt = [];
 	_.map(bsprices, function(price) {
-		try {
-			pricesfmt.push(price.toFixed(3).parseFloat());
-		} catch (err) {
-			pricesfmt = pricesfmt.concat(
-				_.map(
-					price.toString().match(/\d+\.\d{3}/g),
-					function(a) {return a.parseFloat();}
-				)
-			);
-		}
+		pricesfmt = pricesfmt.concat(
+			_.map(price.toString().match(/\d+\.\d{3}/g), parseFloat)
+		)
 	});
-	pricesfmt = _.compact(pricesfmt).length;
-	console.log(bstypes.length);
-	bstypes = _.first(bstypes, pricesfmt.length);
-	bstimes = _.first(bstimes, pricesfmt.length);
+
+	pricesfmt = _.compact(pricesfmt);
+
+	var transactionInfo = formatTransactionInfo(bstypes, bsprices, bstimes, bsstrategies);
+	console.log(_.first(transactionInfo, 10));
 });
 
-function formatTransactionInfo(tmodes, tprices, ttimes) {
-	transactionInfo = _.map(
-		_.zip(tmodes, tprices, ttimes),
+function formatTransactionInfo(tmodes, tprices, ttimes, tstrategies) {
+	return _.map(
+		_.zip(tmodes, tprices, ttimes, tstrategies),
 		function (arr) {
 			var o = {};
 			o.type = arr[0];
 			o.price = arr[1];
 			o.time = arr[2];
+			o.strategy = arr[3];
+			o.manager = selectManager(arr[2]);
 			return o;
 		}
 	);
@@ -152,6 +153,7 @@ function formatTransactionInfo(tmodes, tprices, ttimes) {
 function selectManager(time, strategy) {
 	var managerPeriod;
 	var timePeriod = time/1800;
+	console.log(timePeriod);
 	if(timePeriod <= 3 && timePeriod >= 0 || timePeriod <= 8 && timePeriod >= 5) {
 		managerPeriod = 0;
 	} else if (timePeriod == 4) {
@@ -160,8 +162,6 @@ function selectManager(time, strategy) {
 		managerPeriod = 2;
 	} else if (timePeriod == 13) {
 		managerPeriod = 3;
-	} else {
-		throw "selectManager: invalid time period";
 	}
 
 	managerPeriod *= 2;
