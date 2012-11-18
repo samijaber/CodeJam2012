@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	  <title>AJ Has No Class</title>
+	  <meta charset="utf-8">
+	  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+	  <script src="http://code.highcharts.com/highcharts.js"></script>
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap.no-responsive.no-icons.min.css" rel="stylesheet">
+    <style type="text/css">
+      #graph {
+        height: 500px;
+        border: 1px solid #eee;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        -ms-box-sizing: border-box;
+        box-sizing: border-box;
+      }
+      .row {
+        margin-top: 10px;
+      }
+      .sponsors {
+        background-color: #eee;
+        padding-top: 40px;
+        padding-bottom: 50px;
+        margin-bottom: 20px;
+      }
+      .sponsors-title {
+        margin-top: 50px;
+      }
+      footer {
+        padding-bottom: 50px;
+      }
+      #date-container {
+        position: relative;
+      }
+      #date {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+      }
+      
+      .hidden {
+        display: none;
+        opacity: 0;
+      }
+      
+      
+      
+      /* Highline styles */
+      
+      
+      
+    </style>
+	</head>
+	<body>
+	  <div class="container">
+	    <header class="row">
+	      <div id="date-container" class="span12">
+	        <h1>MSET Trading</h1>
+	        <span id="date"></span>
+	      </div>
+	    </header>
+	    <div class="row">
+	      <div class="span12">
+	        <div id="graph">
+	          <div id="sma"  class="chart"></div>
+	          <div id="lwma" class="chart hidden"></div>
+	          <div id="ema"  class="chart hidden"></div>
+	          <div id="tma"  class="chart hidden"></div>
+	        </div>
+	      </div>
+	    </div>
+	    <div class="row">
+        <div class="span122">
+          <button id="start" class="btn btn-large btn-success">Start</button>
+           <button class="btn btn-large disabled">Generate Report</button>
+        </div>
+	    </div>
+	    
+	    <div class="row">
+	      <div class="span12">
+	        <div class="well">Ceremony ID</div>
+	      </div>
+	    </div>
+	    
+	    
+	    <h3 class="sponsors-title">Thank you sponsors!</h3>
+	  </div>
+	  
+	  
+	    
+    <div class="sponsors">
+      <div class="container">
+        <div class="row">
+          <img class="span4" src="http://www.mcgillcodejam.com/wp-content/uploads/2012/10/ecsess.jpg">
+          <img class="span4" src="http://www.mcgillcodejam.com/wp-content/uploads/2012/10/MorganStanley.jpg">
+          <img class="span4" src="http://www.mcgillcodejam.com/wp-content/uploads/2012/10/silanis.jpg">
+        </div>
+        <div class="row">
+          <img class="span4" src="http://www.mcgillcodejam.com/wp-content/uploads/2012/10/kronos.jpg">
+          <img class="span4" src="http://www.mcgillcodejam.com/wp-content/uploads/2012/10/CIENA-2.png">
+          <img class="span4" src="http://www.mcgillcodejam.com/wp-content/uploads/2012/11/ericsson.jpg">
+        </div>
+      </div>
+    </div>
+	   
+    <div class="container">
+	    <footer class="row">
+        <div class="span12">
+          <p>AJ Ostrow, Carl Poulin, Sami Jaber. McGill Code Jam 2012</p>
+        </div>
+	    </footer>
+	  </div>
+	  
+   <script>
+   
+      $('#date').text(new Date().toDateString());
+   
+      var charts = {};
+      var time = 0;
+      var SCHEMES = ['sma', 'lwma', 'ema', 'tma'];
+      
+      $('#start').one('click', function() {
+        $(this).text("Started").addClass("disabled");
+                
+        init_graph();
+      });
+
+	    // Data
+	    function init_graph() {
+	      $.get('/data/', function(json) {
+          var initial_data = JSON.parse(json);
+          create_charts(initial_data);
+        });
+	    }
+	    
+	    function update_data() {
+	      console.log('updating data');
+	      $.get('/data/', function(json) {
+          var new_data = JSON.parse(json);
+          store_data(new_data); 
+        });
+        
+        // setTimeout(update_data, 200);
+	    }
+	    	    
+	    function store_data(json) {
+	      var lengths = [json.prices.length];
+        for(scheme in json.avgs) {
+          lengths.push(json.avgs[scheme].fast.length);
+          lengths.push(json.avgs[scheme].slow.length);
+        }       
+        
+        var time_end = Math.min.apply(Math, lengths);
+                
+        for(; time<time_end; time++) {
+          for(scheme in json.avgs) {
+            var point = create_point(json.prices[time], json.avgs[scheme].fast[time], json.avgs[scheme].slow[time]);
+            charts[scheme].update(point);
+          }
+        }
+	    }
+	    
+	    function create_point(price, fast, slow) {
+	      return {
+	        'price': price, 
+	        'fast': fast, 
+	        'slow': slow
+	      };
+	    }
+	    	    
+	    // Highcharts
+	    	    
+	    function create_charts(init_data) {
+	      console.log(init_data);
+	      console.log('creating charts');
+	      $.each(SCHEMES, function(index, scheme) {
+          charts[scheme] = create_chart(scheme, init_data);
+        });
+        
+       // charts['sma'] = create_chart('sma');
+	    }
+	    	    
+	    function create_chart(scheme, init_data) {
+	      console.log("Attempting to create " + scheme);
+	      	      
+	      options = {
+	        chart: {
+	          renderTo: scheme,
+	          type: 'spline',
+	          marginRight: 10,
+	          events: {}
+	        },
+	        
+	        title: {
+	          text: '5 and 10 Second ' + scheme.toUpperCase()
+	        },
+	        
+	        xAxis: {
+	          type: 'linear',
+	          tickPixelInterval: 150,
+            title: {
+              text: 'Time (s)'
+            }
+	        },
+	        
+	        yAxis: {
+	          title: {
+              text: 'Price (USD)'
+            },
+            plotLines: [{
+              value: 0,
+              width: 1,
+              color: '#808080'
+            }]
+	        },
+          
+          series: [
+            {
+              'name': 'Price',
+              'data': init_data.prices
+            },
+            {
+              'name': scheme.toUpperCase() + ' Fast',
+              'data': init_data[scheme].fast
+            },
+            {
+              'name': scheme.toUpperCase() + ' Slow',
+              'data': init_data[scheme].slow
+            }
+          ],
+          
+          exporting: {
+            enabled: false
+          }
+        }
+        
+        var chart = new Highcharts.Chart(options);
+
+        console.log(chart);
+                       
+        return null; //chart;
+      }
+      
+      Highcharts.Chart.prototype.update = function(values) {
+        this.series[0].addPoint(values.price);
+        this.series[1].addPoint(values.fast);
+        this.series[2].addPoint(values.slow);
+      }
+	    
+    </script>
+	</body>
+</html>
