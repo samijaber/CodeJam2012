@@ -73,7 +73,7 @@
 	    <div class="row">
         <div class="span6">
           <button id="start" class="btn btn-large btn-success">Start</button>
-          <button class="btn btn-large disabled">Generate Report</button>
+          <button id="generate-report" class="btn btn-large disabled">Generate Report</button>
         </div>
         <div class="span6">
           <ul id="graph-scheme" class="nav nav-pills pull-right">
@@ -122,7 +122,6 @@
 	  </div>
 	  
    <script>
-   
       $('#date').text(new Date().toDateString());
       
       $('a', '#graph-scheme').click(function(e) {
@@ -148,6 +147,21 @@
         $(this).text("Started").addClass("disabled");
                 
         init_graph();
+      });
+      
+      $('#generate-report').one('click', function() {
+        var transactions = []; // replace!
+        $.ajax({
+          url: 'https://stage-api.e-signlive.com/aws/rest/services/codejam',
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: {
+            'team': 'AJ Has No Class',
+            'destination': 'alexander.ostrow@gmail.com',
+            'transactions': transactions
+          }
+        });
       });
 
 	    // Data
