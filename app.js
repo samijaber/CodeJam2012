@@ -99,20 +99,6 @@ price_client.on('end', function() {
 
 var fastAboveSlow; //Initialize to the right value!
 
-function xOverArray(fastarr, slowarr, buy, sell) {
-  if(fastarr.length != slowarr.length) {
-    throw "length of the fast and slow datasets are different";
-  }
-
-  if(typeof fastAboveSlow === 'undefined') {
-    fastAboveSlow = fastarr[0] > slowarr[0];
-  }
-
-  _.map(_.zip(fastarr, slowarr), function(arr) {
-    xOverHelper(arr[0], arr[1], buy, sell);
-  });
-}
-
 function xOver(fast, slow, buy, sell) {
   if(typeof fastAboveSlow === 'undefined') {
     fastAboveSlow = fast > slow;
