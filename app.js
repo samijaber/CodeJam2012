@@ -86,12 +86,37 @@ price_client.on('data', function(data) {
 
   xOver(
     _.last(Strategies.SMA.fast), 
-    _.last(Strategies.SMA.slow), 
+    _.last(Strategies.SMA.slow),
+    Strategies.SMA.name,
     trade_client.buy,
     trade_client.sell
   );
-  
+
+  xOver(
+    _.last(Strategies.LWMA.fast), 
+    _.last(Strategies.LWMA.slow),
+    Strategies.LWMA.name,
+    trade_client.buy,
+    trade_client.sell
+  );
+
+  xOver(
+    _.last(Strategies.EMA.fast), 
+    _.last(Strategies.EMA.slow),
+    Strategies.EMA.name,
+    trade_client.buy,
+    trade_client.sell
+  );
+
+  xOver(
+    _.last(Strategies.TMA.fast), 
+    _.last(Strategies.TMA.slow),
+    Strategies.TMA.name,
+    trade_client.buy,
+    trade_client.sell
+  );  
 });
+
 
 price_client.on('end', function() {
   console.log('Price client disconnected');
@@ -99,23 +124,23 @@ price_client.on('end', function() {
 
 var fastAboveSlow; //Initialize to the right value!
 
-function xOver(fast, slow, buy, sell) {
+function xOver(fast, slow, name, buy, sell) {
   if(typeof fastAboveSlow === 'undefined') {
     fastAboveSlow = fast > slow;
     return;
   }
 
-  xOverHelper(fast, slow, buy, sell);
+  xOverHelper(fast, slow, name, buy, sell);
 }
 
-function xOverHelper(fast, slow, buy, sell) {
+function xOverHelper(fast, slow, name, buy, sell) {
   if( fastAboveSlow != (fast > slow) ) {
     fastAboveSlow = !fastAboveSlow;
     
     if(fast > slow) {
-      buy( Strategies.SMA.name );
+      buy( name );
     } else {
-      sell( Strategies.SMA.name );
+      sell( name );
     }
   }
 }
@@ -158,8 +183,8 @@ trade_client.on('end', function() {
   });
 
   pricesfmt = _.compact(pricesfmt);
-
-  var transactionInfo = report.formatTransactionInfo(bstypes, bsprices, bstimes, bsstrategies);
+  console.log(pricesfmt);
+  var transactionInfo = report.formatTransactionInfo(bstypes, pricesfmt, bstimes, bsstrategies);
   console.log(_.first(transactionInfo, 10));
 });
 
