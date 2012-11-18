@@ -49,12 +49,21 @@ pfclient.on('data', function(data) {
 		bsclient.sell
 	);
 
-	
+
 });
 
 pfclient.on('end', function() {
 	console.log('pfclient disconnected');
 });
+
+function Strategy(f) {
+	this.populate = f;
+}
+
+Strategy.prototype = {
+	fast: [],
+	slow: []
+}
 
 var SMA_5 = [], 
 	SMA_20 = [], 
