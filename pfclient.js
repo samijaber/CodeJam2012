@@ -1,5 +1,6 @@
 "use strict";
 
+var Strategies = require('./strategies').Strategies;
 var _ = require('underscore');
 var net = require('net');
 
@@ -38,12 +39,12 @@ pfclient.on('data', function(data) {
 
 	_.map(arr, function(val) {
 		pricefeed.push(val);
-		SMA(_.last(pricefeed, 20));
+		Strategies.populate(_.last(pricefeed, 21));
 	});
 
 	xOver(
-		_.last(SMA_5), 
-		_.last(SMA_20), 
+		_.last(Strategies.SMA.fast), 
+		_.last(Strategies.SMA.slow), 
 		bsclient.buy,
 		bsclient.sell
 	);
@@ -52,137 +53,6 @@ pfclient.on('data', function(data) {
 pfclient.on('end', function() {
 	console.log('pfclient disconnected');
 });
-
-function Strategy(f) {
-	this.populate = f;
-}
-
-Strategy.prototype = {
-	fast: [],
-	slow: []
-}
-
-var SMA_5 = [], 
-	SMA_20 = [], 
-	LWMA_5 = [],
-	LWMA_20= [], 
-	EMA_5= [],
-	EMA_20= [], 
-	TMA_5= [], 
-	TMA_20 = [];
-
-//SMA function
-function SMA(datapoints)
-{
-	var temp_sum;
-	var t = datapoints.length;
-	if(t<= 5)
-	{
-		SMA_5.push(		Math.round( (sum(datapoints)/t) * 1000) / 1000 );
-		SMA_20.push(_.last(SMA_5));
-	}
-	else if(t <= 20) 
-	{
-		temp_sum = sum(_.last(datapoints, 5));
-		SMA_20.push( 	Math.round( ( (temp_sum + sum(_.first(datapoints,t-5))) /t) *1000 ) /1000 );
-		SMA_5.push( 	Math.round( (temp_sum/5) *1000 )/1000 );
-	}
-	else
-	{
-		SMA_5.push(_.last(SMA_5) + SMA_optimize(datapoints,5));
-		SMA_20.push(_.last(SMA_20) +  SMA_optimize(datapoints,20));
-	}
-}
-
-function SMA_optimize(datapoints, n)
-{
-	return Math.round( (_.last(datapoints)/n - datapoints[datapoints.length-n-1]/n) * 1000) /1000;
-}
-
-function LWMA(datapoints)
-{	
-	var t = datapoints.length;
-	if(t<= 5)
-	{
-		LWMA_5.push(LWMA_optimize(datapoints, t));
-		LWMA_20.push(_.last(LWMA_5));	 
-	}
-	else if(t <= 20) 
-	{  
-		LWMA_5.push(LWMA_optimize(datapoints, 5));
-		LWMA_20.push(LWMA_optimize(datapoints, t));
-	}
-	else
-	{
-		LWMA_5 = LWMA_optimize(datapoints, 5);
-		LWMA_20 = LWMA_optimize(datapoints, 20);
-	}
-}
-
-function LWMA_optimize(datapoints, n)
-{
-	var factors = _.range(1,n+1);
-	var datapoints = _.last(datapoints, n);
-	return Math.round( sum(_.map(_.zip(datapoints,factors), function(array){return array[0]*array[1];}))/sum(factors) *1000) /1000;
-}
-
-function EMA(datapoints)
-{	
-	var t = datapoints.length;
-	var lastprice = _.last(datapoints);
-
-	if(t == 1)
-	{
-		EMA_5.push(lastprice);
-		EMA_20.push(lastprice);
-	}
-	else
-	{
-		var prev_EMA_5 = _.last(EMA_5);
-		var prev_EMA_20 = _.last(EMA_20);
-		EMA_5.push(EMA_optimize(lastprice, 5, prev_EMA_5));
-		EMA_20.push(EMA_optimize(lastprice, 20, prev_EMA_20));
-	}
-}
-
-function EMA_optimize(lastp, n, prev)
-{
-	var value = prev + ((lastp - prev) * (2/(n+1)));
-	return Math.round(value*1000) /1000;
-}
-
-
-function TMA(datapoints)
-{	
-	var t = datapoints.length;
-	if(t<= 5)
-	{
-		TMA_5.push(TMA_optimize(_.last(SMA_5,t),t));
-		TMA_20.push(TMA_optimize(_.last(SMA_20,t),t));
-	}
-	else if(t <= 20) 
-	{
-		TMA_5.push(TMA_optimize(_.last(SMA_5,5),5));
-		TMA_20.push(TMA_optimize(_.last(SMA_20,t),t));
-	}
-	else
-	{
-		TMA_5.push(TMA_optimize(_.last(SMA_5,5),5));
-		TMA_20.push(TMA_optimize(_.last(SMA_20,20),20));
-	}	
-}
-
-function TMA_optimize(data, n)
-{
-	return Math.round( ( (sum(data)/n) *1000 )) / 1000;
-}
-
-//sum function for array x
-function sum(x)
-{
-	//code from Underscore.js Docmuentation
-	return _.reduce(x, function(memo, num){return memo+num;},0);
-}
 
 var fastAboveSlow; //Initialize to the right value!
 

@@ -1,7 +1,3 @@
-//Have arrays of slow and fast, SMA, LWMA, EMA, TMA
-
-//keep track of last datapoint
-
 "use strict";
 
 var _ = require('underscore');
@@ -120,6 +116,9 @@ var Strategies = {
 		}	
 	}), 'TMA')
 };
+
+exports.Strategies = Strategies;
+
 
 /*Debugging
 var dp = [1,2,3,4,5,6,7,8,9,10];
