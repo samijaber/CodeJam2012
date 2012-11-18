@@ -4,7 +4,7 @@
 	  <title>AJ Has No Class</title>
 	  <meta charset="utf-8">
 	  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-	  <script src="http://code.highcharts.com/highcharts.js"></script>
+	  <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap.no-responsive.no-icons.min.css" rel="stylesheet">
     <style type="text/css">
       #graph {
@@ -281,12 +281,6 @@
         console.log(chart);
                        
         return chart; //chart;
-      }
-      
-      Highcharts.Chart.prototype.update = function(values) {
-        this.series[0].addPoint(values.price);
-        this.series[1].addPoint(values.fast);
-        this.series[2].addPoint(values.slow);
       }
 	    
     </script>
