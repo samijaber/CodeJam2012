@@ -26,6 +26,9 @@ var time = 0;
 var handle = {};
 
 handle['/'] = actions.index;
+
+handle['/start/']
+
 handle['/data/'] = function(response) {
   var data = {
     'prices': pricefeed.slice(time, time+10),
@@ -47,7 +50,6 @@ handle['/data/'] = function(response) {
         'slow': pricefeed.slice(time, time+10)
       }
     }
-   
   }
 
   response.writeHead(200, { 'Content-type': 'text/plain'});
@@ -62,7 +64,6 @@ server.start(router.route, handle);
 
 var price_client = net.connect({ port: 8000 }, function() {
   console.log('Price client connected');
-  price_client.write('H\n');
 });
 
 price_client.setEncoding('ascii');
@@ -195,7 +196,7 @@ trade_client.on('end', function() {
   console.log("strategies: " + bsstrategies.length);
   console.log("types: " + bstypes.length);
 
-  var transactionInfo = report.formatTransactionInfo(bstypes, bsprices, bstimes, bsstrategies);
+  var transactionInfo = report.formatTransactionInfo(bstypes, pricesfmt, bstimes, bsstrategies);
 });
 
 
