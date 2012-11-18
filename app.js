@@ -5,6 +5,8 @@
 GLOBAL._ = require('underscore');
 
 var net = require('net');
+var http = require('http');
+var fs = require('fs');
 
 // User Modules
 
@@ -186,6 +188,15 @@ trade_client.on('end', function() {
   console.log(pricesfmt);
   var transactionInfo = report.formatTransactionInfo(bstypes, pricesfmt, bstimes, bsstrategies);
   console.log(_.first(transactionInfo, 10));
+
+  var codejam = {
+    'team': 'AJ has no class',
+    'destination': 'jabersami@gmail.com',
+    'transactions': transactionInfo
+  }
+  
+  fs.writeFile('codejam.json', JSON.stringify(codejam));
+
 });
 
 
