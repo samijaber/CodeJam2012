@@ -131,7 +131,6 @@ function xOver(fast, slow, name, buy, sell) {
     fastAboveSlow = fast > slow;
     return;
   }
-
   xOverHelper(fast, slow, name, buy, sell);
 }
 
@@ -153,28 +152,37 @@ trade_client.setEncoding('ascii');
 
 var bstypes = [],
   bsprices = [],
-  bstimes = [],
-  bsstrategies = [];
+  bsstrategies = [],
+  minTimes = [],
+  maxTimes = [];
 
 trade_client.buy = function(strategy) {
-  trade_client.write('B\n');
-  bstypes.push("buy");
-  bsstrategies.push(strategy);
+  if(maxTimes.length <= 32400) {
+    trade_client.write('B\n');
+    bstypes.push("buy");
+    bsstrategies.push(strategy);
+    minTimes.push(crt);
+  }
 }
 
 trade_client.sell = function(strategy) {
-  trade_client.write('S\n');
-  bstypes.push("sell");
-  bsstrategies.push(strategy);
-  bstimes.push(crt);
+  if(maxTimes.length <= 32400) {
+    trade_client.write('S\n');
+    bstypes.push("sell");
+    bsstrategies.push(strategy);
+    minTimes.push(crt);
+  }
 }
 
 trade_client.on('data', function(data) {
   if(data.toString() == "E") {
     console.log("E");
   }
+  maxTimes.push(crt);
   bsprices.push(data);
 });
+
+
 
 trade_client.on('end', function() {
   var pricesfmt = [];
@@ -185,9 +193,30 @@ trade_client.on('end', function() {
   });
 
   pricesfmt = _.compact(pricesfmt);
-  console.log(pricesfmt);
-  var transactionInfo = report.formatTransactionInfo(bstypes, pricesfmt, bstimes, bsstrategies);
-  console.log(_.first(transactionInfo, 10));
+  
+  console.log(bstypes.length);
+  console.log(minTimes.length);
+  console.log(maxTimes.length);
+
+  var bstimes = _.map(
+    _.zip(minTimes, maxTimes, pricesfmt),
+    function (arr) {
+      return _.find(
+        _.range(arr[0], pricefeed.length),
+        function(a) {
+          return pricefeed[a] == arr[2];
+        }
+        );
+    }
+    );
+
+  var transactionInfo = report.formatTransactionInfo(bstimes, bstypes, pricesfmt, bsstrategies);
+  transactionInfo = _.filter(transactionInfo, function(a) {
+    return typeof a.price != 'undefined';
+  })
+
+  console.log(transactionInfo);
+
 
   var codejam = {
     'team': 'AJ has no class',
