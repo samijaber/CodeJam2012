@@ -4,7 +4,6 @@ var _ = require('underscore');
 var net = require('net');
 
 var pricefeed = [];
-var time = 0;
 
 function logbuy() {
 	console.log("buy");
@@ -48,8 +47,6 @@ pfclient.on('data', function(data) {
 		bsclient.buy,
 		bsclient.sell
 	);
-
-
 });
 
 pfclient.on('end', function() {
@@ -227,35 +224,83 @@ var bsclient = net.connect({port: 9000});
 
 bsclient.setEncoding('ascii');
 
-var bsmodes = [],
+var bstypes = [],
 	bsprices = [],
-	bstimes = [];
+	bstimes = [],
+	bsstrategies = [];
 
-bsclient.buy = function() {
-	bsmodes.push("B");
+bsclient.buy = function(strategy) {
 	bsclient.write('B\n');
+	bstypes.push("buy");
+	bsstrategies.push(strategy);
 }
 
-bsclient.sell = function() {
-	bsmodes.push("S");
+bsclient.sell = function(strategy) {
 	bsclient.write('S\n');
+	bstypes.push("sell");
+	bsstrategies.push(strategy);
 }
 
 bsclient.on('data', function(data) {
 	bsprices.push(data);
-	bstimes = []; //not exact, possibly a few seconds too high
+	bstimes.push(pricefeed.length); //not exact, possibly a few seconds too high
 });
 
 bsclient.on('end', function() {
 	var pricesfmt = [];
 	_.map(bsprices, function(price) {
 		try {
-			pricesfmt.push(price.toFixed(3));
+			pricesfmt.push(price.toFixed(3).parseFloat());
 		} catch (err) {
-			pricesfmt = pricesfmt.concat(price.toString().match(/\d+\.\d{3}/g));
+			pricesfmt = pricesfmt.concat(
+				_.map(
+					price.toString().match(/\d+\.\d{3}/g),
+					function(a) {return a.parseFloat();}
+				)
+			);
 		}
 	});
 	pricesfmt = _.compact(pricesfmt).length;
-	console.log(bsmodes.length);
-	_.first(bsmodes, pricesfmt.length);
+	console.log(bstypes.length);
+	bstypes = _.first(bstypes, pricesfmt.length);
+	bstimes = _.first(bstimes, pricesfmt.length);
 });
+
+function formatTransactionInfo(tmodes, tprices, ttimes) {
+	transactionInfo = _.map(
+		_.zip(tmodes, tprices, ttimes),
+		function (arr) {
+			var o = {};
+			o.type = arr[0];
+			o.price = arr[1];
+			o.time = arr[2];
+			return o;
+		}
+	);
+}
+
+function selectManager(time, strategy) {
+	var managerPeriod;
+	var timePeriod = time/1800;
+	if(timePeriod <= 3 && timePeriod >= 0 || timePeriod <= 8 && timePeriod >= 5) {
+		managerPeriod = 0;
+	} else if (timePeriod == 4) {
+		managerPeriod = 1;
+	} else if (timePeriod <= 12 && timePeriod >= 9 || timePeriod <= 17 && timePeriod >= 14) {
+		managerPeriod = 2;
+	} else if (timePeriod == 13) {
+		managerPeriod = 3;
+	} else {
+		throw "selectManager: invalid time period";
+	}
+
+	managerPeriod *= 2;
+
+	if (strategy == "EMA" || strategy == "TMA") {
+		managerPeriod++;
+	}
+
+	managerPeriod++;
+
+	return "Manager" + managerPeriod;
+}
