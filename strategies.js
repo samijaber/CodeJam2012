@@ -69,8 +69,8 @@ var Strategies = {
 		}
 		else
 		{
-			this.fast = LWMA_optimize(datapoints, 5);
-			this.slow = LWMA_optimize(datapoints, 20);
+			this.fast.push(LWMA_optimize(datapoints, 5));
+			this.slow.push(LWMA_optimize(datapoints, 20));
 		}
 	}), 'LWMA'),
 
