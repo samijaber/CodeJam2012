@@ -2,6 +2,10 @@
 
 var _ = require('underscore');
 
+function sum(ary) {
+  return _.reduce(ary, function(x, y) { return x + y; }, 0);
+}
+
 function Strategy(f, name) {
 	this.populate = f;
 	this.slow = [];
@@ -139,10 +143,3 @@ console.log(Strategies.EMA.fast);
 console.log(Strategies.TMA.slow);
 console.log(Strategies.TMA.fast);
 */
-
-//sum function for array x
-function sum(x)
-{
-	//code from Underscore.js Docmuentation
-	return _.reduce(x, function(memo, num){return memo+num;},0);
-}

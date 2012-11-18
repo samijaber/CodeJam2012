@@ -168,7 +168,7 @@
 	    function init_graph() {
 	      $.get('/data/', function(json) {
           var initial_data = JSON.parse(json);
-          create_charts(initial_data);
+          create_charts(initial_data, update_data);
           $('text[text-anchor="end"]').remove();
         });
 	    }
@@ -180,10 +180,11 @@
           store_data(new_data); 
         });
         
-        // setTimeout(update_data, 200);
+        setTimeout(update_data, 1000);
 	    }
 	    	    
 	    function store_data(json) {
+	      /*
 	      var lengths = [json.prices.length];
         for(scheme in json.avgs) {
           lengths.push(json.avgs[scheme].fast.length);
@@ -191,10 +192,12 @@
         }       
         
         var time_end = Math.min.apply(Math, lengths);
-                
-        for(; time<time_end; time++) {
+        
+        console.log("Ending time: " + time_end);
+        */
+        for(var i=0; i<10; i++) {
           for(scheme in json.avgs) {
-            var point = create_point(json.prices[time], json.avgs[scheme].fast[time], json.avgs[scheme].slow[time]);
+            var point = create_point(json.prices[i], json.avgs[scheme].fast[i], json.avgs[scheme].slow[i]);
             charts[scheme].update(point);
           }
         }
@@ -210,12 +213,13 @@
 	    	    
 	    // Highcharts
 	    	    
-	    function create_charts(init_data) {
+	    function create_charts(init_data, callback) {
 	      console.log(init_data);
 	      console.log('creating charts');
 	      $.each(SCHEMES, function(index, scheme) {
           charts[scheme] = create_chart(scheme, init_data);
         });
+        callback();
 	    }
 	    	    
 	    function create_chart(scheme, init_data) {	      	      
@@ -259,11 +263,11 @@
             },
             {
               'name': scheme.toUpperCase() + ' Fast',
-              'data': init_data[scheme].fast
+              'data': init_data.avgs[scheme].fast
             },
             {
               'name': scheme.toUpperCase() + ' Slow',
-              'data': init_data[scheme].slow
+              'data': init_data.avgs[scheme].slow
             }
           ],
           
@@ -276,7 +280,7 @@
 
         console.log(chart);
                        
-        return null; //chart;
+        return chart; //chart;
       }
       
       Highcharts.Chart.prototype.update = function(values) {

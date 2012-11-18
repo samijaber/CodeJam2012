@@ -6,7 +6,6 @@ GLOBAL._ = require('underscore');
 
 var net = require('net');
 
-
 // User Modules
 
 var server = require('./client/server')
@@ -22,40 +21,59 @@ var pricefeed = [];
 var crt = -1;
   
 // HTTP Server
-  
+
+var time = 0;
 var handle = {};
 
 handle['/'] = actions.index;
-handle['/data/'] = actions.data;
+handle['/data/'] = function(response) {
+  var data = {
+    'prices': pricefeed.slice(time, time+10),
+    'avgs': {
+       'sma' : {
+        'fast': Strategies.SMA.fast.slice(time, time+10),
+        'slow': Strategies.SMA.slow.slice(time, time+10)
+      },
+      'lwma': {
+        'fast': pricefeed.slice(time, time+10),
+        'slow': pricefeed.slice(time, time+10)
+      },
+      'ema': {
+        'fast': pricefeed.slice(time, time+10),
+        'slow': pricefeed.slice(time, time+10)
+      },
+      'tma': {
+        'fast': pricefeed.slice(time, time+10),
+        'slow': pricefeed.slice(time, time+10)
+      }
+    }
+   
+  }
+
+  response.writeHead(200, { 'Content-type': 'text/plain'});
+  response.write( JSON.stringify(data) );
+  response.end();
+  time += 10;
+}
 
 server.start(router.route, handle);
 
 // TCP Server
 
-
-function logbuy() {
-  console.log("buy");
-}
-
-function logsell() {
-  console.log("sell");
-}
-
-var pfclient = net.connect({port: 8000},
-    function() { //'connect' listener
-  console.log('pfclient connected');
-  pfclient.write('H\n');
+var price_client = net.connect({ port: 8000 }, function() {
+  console.log('Price client connected');
+  price_client.write('H\n');
 });
 
-pfclient.setEncoding('ascii');
+price_client.setEncoding('ascii');
 
-pfclient.on('data', function(data) {
+price_client.on('data', function(data) {
 
   var arr = data.toString().split("|");
 
   if(arr.pop() == "C") { //Empty string, except when it's C, then it means the exchange closed
-    bsclient.end();
-    pfclient.end();
+    trade_client.end();
+    price_client.end();
   }
 
   arr = arr.map(function(a) { return parseFloat(a); });
@@ -69,13 +87,14 @@ pfclient.on('data', function(data) {
   xOver(
     _.last(Strategies.SMA.fast), 
     _.last(Strategies.SMA.slow), 
-    bsclient.buy,
-    bsclient.sell
+    trade_client.buy,
+    trade_client.sell
   );
+  
 });
 
-pfclient.on('end', function() {
-  console.log('pfclient disconnected');
+price_client.on('end', function() {
+  console.log('Price client disconnected');
 });
 
 var fastAboveSlow; //Initialize to the right value!
@@ -104,46 +123,47 @@ function xOver(fast, slow, buy, sell) {
 }
 
 function xOverHelper(fast, slow, buy, sell) {
-  if(fastAboveSlow != fast > slow) {
+  if( fastAboveSlow != (fast > slow) ) {
     fastAboveSlow = !fastAboveSlow;
-    if(fastAboveSlow) { //If fast just overtook slow
-      buy(Strategies.SMA.name);
+    
+    if(fast > slow) {
+      buy( Strategies.SMA.name );
     } else {
-      sell(Strategies.SMA.name);
+      sell( Strategies.SMA.name );
     }
   }
 }
 
-var bsclient = net.connect({port: 9000});
+var trade_client = net.connect( {port: 9000} );
 
-bsclient.setEncoding('ascii');
+trade_client.setEncoding('ascii');
 
 var bstypes = [],
   bsprices = [],
   bstimes = [],
   bsstrategies = [];
 
-bsclient.buy = function(strategy) {
-  bsclient.write('B\n');
+trade_client.buy = function(strategy) {
+  trade_client.write('B\n');
   bstypes.push("buy");
   bsstrategies.push(strategy);
 }
 
-bsclient.sell = function(strategy) {
-  bsclient.write('S\n');
+trade_client.sell = function(strategy) {
+  trade_client.write('S\n');
   bstypes.push("sell");
   bsstrategies.push(strategy);
   bstimes.push(crt);
 }
 
-bsclient.on('data', function(data) {
+trade_client.on('data', function(data) {
   if(data.toString() == "E") {
     console.log("E");
   }
   bsprices.push(data);
 });
 
-bsclient.on('end', function() {
+trade_client.on('end', function() {
   var pricesfmt = [];
   _.map(bsprices, function(price) {
     pricesfmt = pricesfmt.concat(
@@ -154,9 +174,7 @@ bsclient.on('end', function() {
   pricesfmt = _.compact(pricesfmt);
 
   var transactionInfo = report.formatTransactionInfo(bstypes, bsprices, bstimes, bsstrategies);
-  console.log(_.last(transactionInfo, 10));
+  console.log(_.first(transactionInfo, 10));
 });
-
-
 
 
