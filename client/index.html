@@ -105,6 +105,9 @@
         
       var graph = Raphael('graph', WIDTH, HEIGHT);
       var lines = create_lines(graph, TYPES, COLOR);
+      var labels = {
+        x: [], y: []
+      }
       
       setup(graph);
       
@@ -147,7 +150,20 @@
         
         x_axis(paper);
         
-                        
+        var dy = (HEIGHT - MARGIN.top - MARGIN.bottom) / 8;
+        for(var i=0; i<8; i++) {
+          var y = HEIGHT - i * dy - MARGIN.bottom - 5;
+          var label = graph.text(20, y, 0);
+          label.node.id = "y-" + i;
+          labels.y.push(label);
+        }
+        var dx = (WIDTH - MARGIN.left - MARGIN.right) / 20;
+        for(var i=0; i<20; i++) {
+          var x = MARGIN.left + i * dx + 10;
+          var label = graph.text(x, HEIGHT - 25, '');
+        }
+        
+        
         $.each( SCHEMES, function(i, scheme) {
           var chart = new Chart();
           chart.scale = new Scale(WIDTH, HEIGHT, MARGIN);
@@ -162,7 +178,11 @@
           lines[type].animate({path: new_paths[type]}, 900, 'linear');
         });
         var labels = charts[active].labels();
-        console.log(labels);
+        for(var i=0; i<labels.y.length; i++) {
+          $('tspan', '#y-' + i).text(labels.y[i]);
+        }
+        
+        
       }
       
       var count = 1;
@@ -265,6 +285,15 @@
         // Remember the canvas has y = 0 at the top, and y = HEIGHT at the bottom
         return Math.round( this.height - h + this.top );
       },
+      
+      x_labels: function(amount) {
+        var labels = [];
+        var offset = (this.xVal.max - this.xVal.min) / amount;
+        for(var i=0; i<amount; i++) {
+          labels[i] = Math.round(i*offset + this.xVal.min)
+        }
+        return labels;
+      }
       
       y_labels: function(amount) {
         var labels = [];
