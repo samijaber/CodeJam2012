@@ -71,10 +71,19 @@
 	      </div>
 	    </div>
 	    <div class="row">
-        <div class="span122">
+        <div class="span6">
           <button id="start" class="btn btn-large btn-success">Start</button>
-           <button class="btn btn-large disabled">Generate Report</button>
+          <button class="btn btn-large disabled">Generate Report</button>
         </div>
+        <div class="span6">
+          <ul id="graph-scheme" class="nav nav-pills pull-right">
+            <li class="active"><a href="#" data-scheme="sma">SMA</a></li>
+            <li><a href="#" data-scheme="lwma">LWMA</a></li>
+            <li><a href="#" data-scheme="ema">EMA</a></li>
+            <li><a href="#" data-scheme="tma">TMA</a></li>
+          </ul>
+        </div>
+        
 	    </div>
 	    
 	    <div class="row">
@@ -107,7 +116,7 @@
     <div class="container">
 	    <footer class="row">
         <div class="span12">
-          <p>AJ Ostrow, Carl Poulin, Sami Jaber. McGill Code Jam 2012</p>
+          <p>AJ Ostrow, Carl Poulin, Sami Jaber ~ McGill Code Jam 2012</p>
         </div>
 	    </footer>
 	  </div>
@@ -115,10 +124,25 @@
    <script>
    
       $('#date').text(new Date().toDateString());
+      
+      $('a', '#graph-scheme').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        $('.chart').addClass('hidden');
+        $('#' + $(this).data('scheme')).removeClass('hidden');
+        
+        $('li', '#graph-scheme').removeClass('active');
+        $(this).parent('li').addClass('active');
+      });
    
       var charts = {};
       var time = 0;
       var SCHEMES = ['sma', 'lwma', 'ema', 'tma'];
+      
+      var HEIGHT = $('#graph').height()
+        , WIDTH = $('#graph').width() - 20;
+      
       
       $('#start').one('click', function() {
         $(this).text("Started").addClass("disabled");
@@ -131,6 +155,7 @@
 	      $.get('/data/', function(json) {
           var initial_data = JSON.parse(json);
           create_charts(initial_data);
+          $('text[text-anchor="end"]').remove();
         });
 	    }
 	    
@@ -177,15 +202,13 @@
 	      $.each(SCHEMES, function(index, scheme) {
           charts[scheme] = create_chart(scheme, init_data);
         });
-        
-       // charts['sma'] = create_chart('sma');
 	    }
 	    	    
-	    function create_chart(scheme, init_data) {
-	      console.log("Attempting to create " + scheme);
-	      	      
+	    function create_chart(scheme, init_data) {	      	      
 	      options = {
 	        chart: {
+	          width: WIDTH,
+            height: HEIGHT,
 	          renderTo: scheme,
 	          type: 'spline',
 	          marginRight: 10,
