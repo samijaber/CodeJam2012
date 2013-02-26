@@ -10,4 +10,4 @@ To run the app, here are the steps:
 
 2- run "node app.js"
 
-3- open your browser to 8000:0:0:0
+3- open your browser to http://0.0.0.0:8888/
