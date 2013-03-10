@@ -1,7 +1,5 @@
-codejam
-=======
-
 Codejam 2012
+=======
 
 Description
 ===========
