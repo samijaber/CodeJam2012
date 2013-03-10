@@ -3,8 +3,13 @@ codejam
 
 Codejam 2012
 
+Description
+===========
 
-To run the app, here are the steps:
+An app that I wrote with 2 teammates during a 48h hackathon at McGill (CodeJam @ McGill). 
+
+
+To run the app:
 
 1- run the server by writing out the command found in /exchange/command.txt
 
